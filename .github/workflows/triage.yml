@@ -2,13 +2,14 @@ name: Triage
 on:
   pull_request_target:
     branches:
-    - main
+      - main
     types:
-    - edited
-    - labeled
-    - opened
-    - unlabeled
-    - synchronize
+      - edited
+      - labeled
+      - opened
+      - unlabeled
+      - synchronize
+      - ready_for_review
 
 permissions:
   pull-requests: write
@@ -50,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tbp.monty
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           lfs: true
@@ -70,8 +71,8 @@ jobs:
         run: |
           echo "This PR has been triaged."
           exit 0
-      - name: triaged label is absent
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'triaged') }}
+      - name: is not draft and triaged label is absent
+        if: ${{ github.event.pull_request.draft == false && !contains(github.event.pull_request.labels.*.name, 'triaged') }}
         run: |
           echo "This PR is missing the 'triaged' label."
           echo "A maintainer will apply it during triage."
