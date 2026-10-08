@@ -65,7 +65,7 @@ class MontyForGraphMatching(MontyBase):
             lm.fixme_reset_ground_truth(primary_target)
 
         logger.debug(
-            f"Models in memory: {self.learning_modules[0].get_all_known_object_ids()}"
+            f"Models in memory: {self.learning_modules[0].get_all_known_object_ids()}" # type: ignore
         )
 
     def send_vote_to_lm(self, lm, lm_id, combined_votes):
@@ -99,7 +99,7 @@ class MontyForGraphMatching(MontyBase):
             False otherwise.
         """
         for lm_ii in self.learning_modules:
-            if lm_ii.buffer.get_last_obs_processed():
+            if lm_ii.buffer.get_last_obs_processed(): # type: ignore
                 # True if the last step was an lm-processed-step
                 return True
 
@@ -138,7 +138,7 @@ class MontyForGraphMatching(MontyBase):
         # recover.
         all_lms_no_match = True
         for lm in self.learning_modules:
-            if lm.terminal_state != "no_match":
+            if lm.terminal_state != "no_match": # type: ignore
                 all_lms_no_match = False
 
         if all_lms_no_match:
@@ -153,11 +153,11 @@ class MontyForGraphMatching(MontyBase):
         # TODO: we may also want to count no_match as done.
         terminal_states: dict[str, str | None] = {}
         for lm in self.learning_modules:
-            lm.update_terminal_condition()
+            lm.update_terminal_condition() # type: ignore
             logger.debug(
-                f"{lm.learning_module_id} has terminal state: {lm.terminal_state}"
+                f"{lm.learning_module_id} has terminal state: {lm.terminal_state}" # type: ignore
             )
-            terminal_states[lm.learning_module_id] = lm.terminal_state
+            terminal_states[lm.learning_module_id] = lm.terminal_state # type: ignore
 
         if self._match_criterion(terminal_states):
             logger.info("\n\nMONTY DETECTED MATCH\n\n")
@@ -220,7 +220,7 @@ class MontyForGraphMatching(MontyBase):
                     input_channels = [obs.sender_id for obs in sensory_inputs]
                     logger.info(
                         f"Sending input from {input_channels}"
-                        f" to {self.learning_modules[i].learning_module_id}"
+                        f" to {self.learning_modules[i].learning_module_id}" # type: ignore
                     )
                 lm_step_method = getattr(self.learning_modules[i], self.step_type)
                 assert callable(lm_step_method), f"{lm_step_method} must be callable"
@@ -228,13 +228,13 @@ class MontyForGraphMatching(MontyBase):
                 if self.step_type == "matching_step":
                     logger.debug(f"Stepping learning module {i}")
 
-                self.learning_modules[i].add_lm_processing_to_buffer_stats(
+                self.learning_modules[i].add_lm_processing_to_buffer_stats( # type: ignore
                     lm_processed=not is_location_only_step(sensory_inputs)
                 )
             else:
                 if self.step_type == "matching_step":
                     logger.info(f"Skipping step on learning module {i}")
-                self.learning_modules[i].add_lm_processing_to_buffer_stats(
+                self.learning_modules[i].add_lm_processing_to_buffer_stats( # type: ignore
                     lm_processed=False
                 )
 
@@ -247,8 +247,8 @@ class MontyForGraphMatching(MontyBase):
                 observations
                 TODO make use of a buffer method to handle the below logging
                 """
-                self.learning_modules[i].stepwise_targets_list.append(
-                    self.learning_modules[i].stepwise_target_object
+                self.learning_modules[i].stepwise_targets_list.append( # type: ignore
+                    self.learning_modules[i].stepwise_target_object # type: ignore
                 )
 
     def _combine_votes(self, votes_per_lm):
@@ -310,7 +310,7 @@ class MontyForGraphMatching(MontyBase):
                         sensor_disp = np.array(receiving_lm_pose[0]) - np.array(
                             sending_lm_pose[0]
                         )
-                        sensor_rotation_disp, _ = Rotation.align_vectors(
+                        sensor_rotation_disp, _ = Rotation.align_vectors( # type: ignore
                             sending_lm_pose[1:], receiving_lm_pose[1:]
                         )
                         logger.debug(
@@ -386,11 +386,11 @@ class MontyForGraphMatching(MontyBase):
         # Log possible matches
         for lm in self.learning_modules:
             pm = (
-                lm.get_possible_matches()
-                if lm.buffer.get_num_observations_on_object()
+                lm.get_possible_matches() # type: ignore
+                if lm.buffer.get_num_observations_on_object() # type: ignore
                 else []
             )
-            logger.info(f"Possible matches for {lm.learning_module_id}: {pm}")
+            logger.info(f"Possible matches for {lm.learning_module_id}: {pm}") # type: ignore
 
     def _set_step_type_and_check_if_done(self):
         """Check terminal conditions and decide if we change the step type."""
@@ -413,7 +413,7 @@ class MontyForGraphMatching(MontyBase):
                     if self.experiment_mode is ExperimentMode.TRAIN:
                         self.switch_to_exploratory_step()
                         for sm in self.sensor_modules:
-                            sm.is_exploring = True
+                            sm.is_exploring = True # type: ignore
 
                     elif (
                         self.experiment_mode is ExperimentMode.EVAL
@@ -454,7 +454,7 @@ class MontyForGraphMatching(MontyBase):
         TODO: Add unit tests for this
         """
         try:
-            lm.stepwise_target_object = self.semantic_id_to_label[
+            lm.stepwise_target_object = self.semantic_id_to_label[ # type: ignore
                 SemanticID(sensory_inputs[0]._semantic_id)
             ]
             logger.debug(f"Stepwise target: {lm.stepwise_target_object}")
@@ -489,8 +489,8 @@ class MontyForGraphMatching(MontyBase):
         # Don't set LM states to time out if we were in exploratory mode
         if self.step_type != "exploratory_step":
             for lm in self.learning_modules:
-                if lm.terminal_state is None:
-                    lm.terminal_state = "time_out"
+                if lm.terminal_state is None: # type: ignore
+                    lm.terminal_state = "time_out" # type: ignore
         if global_time_out:
             # Don't go into exploratory mode if we timed out
             self._is_done = True
@@ -591,7 +591,7 @@ class GraphLM(LearningModule):
         first_movement_detected = self._agent_moved_since_reset()
         buffer_data = self._add_displacements(percepts)
         self.buffer.append(buffer_data)
-        self.buffer.append_input_percepts(percepts)
+        self.buffer.append_input_percepts(percepts) # type: ignore
 
         if first_movement_detected:
             logger.debug("performing matching step.")
@@ -608,7 +608,7 @@ class GraphLM(LearningModule):
             self.set_individual_ts(terminal_state="no_match")
 
         if self.gsg is not None:
-            self.gsg.step(ctx, feature_percepts)
+            self.gsg.step(ctx, feature_percepts) # type: ignore
 
         stats = self.collect_stats_to_save()
         self.buffer.update_stats(stats, append=self.has_detailed_logger)
@@ -624,7 +624,7 @@ class GraphLM(LearningModule):
 
         buffer_data = self._add_displacements(percepts)
         self.buffer.append(buffer_data)
-        self.buffer.append_input_percepts(percepts)
+        self.buffer.append_input_percepts(percepts) # type: ignore
 
     def update_ltm_from_stm(self) -> None:
         """If training, update memory from buffer."""
@@ -789,7 +789,7 @@ class GraphLM(LearningModule):
             possible_paths_obj = np.array(possible_paths[obj])
             if len(possible_paths_obj.shape) > 1:
                 possible_locations[obj] = possible_paths_obj[:, -1]
-            elif possible_paths_obj.shape[0] > 0:
+            elif possible_paths_obj.shape[0] > 0: # type: ignore
                 # deals with case where first observation is not on object
                 possible_locations[obj] = np.array(
                     self.graph_memory.get_locations_in_graph(obj, input_channel="first")
@@ -808,7 +808,7 @@ class GraphLM(LearningModule):
         Returns:
             Possible poses for each object.
         """
-        poses = self.possible_poses.copy()
+        poses = self.possible_poses.copy() # type: ignore
         if as_euler:
             all_poses = {}
             for obj in poses:
@@ -890,8 +890,8 @@ class GraphLM(LearningModule):
             logger.info(
                 f"{self.learning_module_id}: "
                 f"Detected {self.detected_object} "
-                f"at location {np.round(self.detected_pose[:3], 3)},"
-                f" rotation {np.round(self.detected_pose[3:6], 3)},"
+                f"at location {np.round(self.detected_pose[:3], 3)}," # type: ignore
+                f" rotation {np.round(self.detected_pose[3:6], 3)}," # type: ignore
                 f" and scale {self.detected_pose[6]}"
             )
             self.buffer.set_individual_ts(self.detected_object, self.detected_pose)
@@ -933,7 +933,7 @@ class GraphLM(LearningModule):
         )
         # TODO: remove logging config when telemetry is refactored
         if hasattr(self, "has_detailed_logger"):
-            memo["has_detailed_logger"] = self.has_detailed_logger
+            memo["has_detailed_logger"] = self.has_detailed_logger # type: ignore
         return memo
 
     def load_state_dict(self, memento: Memento) -> None:
@@ -975,7 +975,7 @@ class GraphLM(LearningModule):
 
         logger.debug(f"query: {query}")
 
-        self._update_possible_matches(ctx, query=query)
+        self._update_possible_matches(ctx, query=query) # type: ignore
 
     def _update_possible_matches(self, ctx: RuntimeContext):
         # QUESTION: Should we give this a more general name? Like update_hypotheses
@@ -986,12 +986,12 @@ class GraphLM(LearningModule):
     def _update_memory(self):
         """Give all infos to graph_memory.update_memory to determine how to update."""
         args = self.buffer.get_infos_for_graph_update()
-        args["graph_id"] = self.detected_object
-        args["object_rotation"] = self.detected_rotation_r
+        args["graph_id"] = self.detected_object # type: ignore
+        args["object_rotation"] = self.detected_rotation_r # type: ignore
         if args["object_rotation"] is not None:
             # TODO: find a solution that makes it more obvious when rotation is rel
             # the model or rel environment.
-            args["object_rotation"] = args["object_rotation"].inv()
+            args["object_rotation"] = args["object_rotation"].inv() # type: ignore
         self.graph_memory.update_memory(**args)
 
     def _update_target_graph_mapping(self, detected_object, target_object):
@@ -1055,14 +1055,14 @@ class GraphLM(LearningModule):
                 # in evidence matching pose_vectors are always added to tolerances
                 # since they are requires for matching.
                 if (
-                    feature in self.tolerances[input_channel]
+                    feature in self.tolerances[input_channel] # type: ignore
                     or feature == "pose_fully_defined"
                 ):
                     features_to_use[input_channel][feature] = (
                         percept.morphological_features[feature]
                     )
             for feature in percept.non_morphological_features:
-                if feature in self.tolerances[input_channel]:
+                if feature in self.tolerances[input_channel]: # type: ignore
                     features_to_use[input_channel][feature] = (
                         percept.non_morphological_features[feature]
                     )
@@ -1087,6 +1087,7 @@ class GraphLM(LearningModule):
             Unmodified stats.
         """
         return stats
+    tolerances = None
 
 
 class GraphMemory(LMMemory):
@@ -1276,7 +1277,7 @@ class GraphMemory(LMMemory):
         TODO: look into getting node_id > graph.x.shape[0] (by 1)
         """
         if feature_keys is None:
-            feature_keys = self.features_to_use[input_channel]
+            feature_keys = self.features_to_use[input_channel] # type: ignore
         node_features = {}
         graph = self.get_graph(graph_id, input_channel)
         if graph is None:
@@ -1355,7 +1356,7 @@ class GraphMemory(LMMemory):
         self.models_in_memory[graph_id][input_channel] = model
 
         logger.info(f"Added new graph with id {graph_id} to memory.")
-        telemeter.info(TelemetryEvent(kind="NewGraphAdded", graph_id=graph_id))
+        telemeter.info(TelemetryEvent(kind="NewGraphAdded", graph_id=graph_id)) # type: ignore
 
     def _extend_graph(
         self,
@@ -1481,5 +1482,6 @@ class GraphMemory(LMMemory):
         for feature in features:
             features[feature] = features[feature][~missing_features]
         return features, locations
+    features_to_use = None
 
     # ----------------------- Logging --------------------------
