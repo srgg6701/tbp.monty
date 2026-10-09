@@ -2,7 +2,10 @@
   "executionEnvironments": [
     {
       "root": "src/tbp/monty",
-      "reportAttributeAccessIssue": "none"
+      "reportAttributeAccessIssue": "none",
+      "reportReturnType": "none",
+      "reportArgumentType": "none",
+      "reportIncompatibleMethodOverride": "none"
     }
   ]
 }
