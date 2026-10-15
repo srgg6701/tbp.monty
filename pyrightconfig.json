@@ -5,7 +5,8 @@
       "reportAttributeAccessIssue": "none",
       "reportReturnType": "none",
       "reportArgumentType": "none",
-      "reportIncompatibleMethodOverride": "none"
+      "reportIncompatibleMethodOverride": "none",
+      "reportPossiblyUnboundVariable": "none"
     }
   ]
 }

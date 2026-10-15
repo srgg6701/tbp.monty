@@ -538,7 +538,7 @@ class MontyBase(Monty):
 
     @property
     def exceeded_min_steps(self):
-        return self.step_type_count > self.min_steps
+        return self.step_type_count > self.min_steps # type: ignore
 
     def reset_episode_steps(self):
         self.episode_steps = 0
@@ -554,7 +554,7 @@ class MontyBase(Monty):
             logger.info(f"--- Global Matching Step {self.matching_steps} ---")
             telemeter.info(
                 TelemetryEvent(
-                    kind="GlobalMatchingStep", matching_steps=self.matching_steps
+                    kind="GlobalMatchingStep", matching_steps=self.matching_steps # type: ignore
                 )
             )
         elif self.step_type == "exploratory_step":
