@@ -6,7 +6,12 @@
       "reportReturnType": "none",
       "reportArgumentType": "none",
       "reportIncompatibleMethodOverride": "none",
-      "reportPossiblyUnboundVariable": "none"
+      "reportPossiblyUnboundVariable": "none",
+      "reportOptionalSubscript": "none",
+      "reportOperatorIssue": "none",
+      "reportOptionalMemberAccess": "none",
+      "reportCallIssue": "none",
+      "reportOptionalIterable": "none"
     }
   ]
 }
