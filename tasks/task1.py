@@ -21,20 +21,22 @@ def dataset ():
   )
   # print(f"Hello, task 1 here.\nLocations: {locations}\nFeatures: {features['fdots']}")
   # print(f"{locations.shape}, {features['fdots'].shape}")
-  print("model.pos (coordinates): ")
-  print(model.pos)
-  print("\nmodel.x (features): ")
-  print(model.x)
-  print("\nmodel.feature_mapping: ")
-  print(model.feature_mapping)
+  # print("model.pos (coordinates): ")
+  # print(model.pos)
+  # print("\nmodel.x (features): ")
+  # print(model.x)
+  # print("\nmodel.feature_mapping: ")
+  # print(model.feature_mapping)
+  print("Drawing graph...")
+  
   fig = plt.figure()                          # canvas
   ax = fig.add_subplot(projection="3d")       # 3D-axes on the canvas
   ax.scatter(locations[:, 0], locations[:, 1], locations[:, 2])   # dots
   # ----------------------------------------
-    # Borders of 50 cells on each axis considering location of the model's grid
+  # Borders of 50 cells on each axis considering location of the model's grid
   n = model._num_voxels_per_dim
   scale = model._location_scale_factor
-  offset = model._location_offset
+  offset = model._location_offset # attached to the first observed dot on the graph
 
   edges = [
       (np.arange(n + 1) - 0.5 - offset[i]) / scale
