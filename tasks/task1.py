@@ -1,42 +1,36 @@
 # as it turned out, import of sys.path.insert is not needed here
-from tbp.monty.frameworks.models.object_model import GridObjectModel
+from tbp.monty.frameworks.models.object_model import GridObjectModel  # noqa: I001
 import numpy as np
 import matplotlib.pyplot as plt
 
 model = GridObjectModel(
   "test_model",
-  max_nodes=10, # the maximum number of nodes that will remain in the graph. The cells that contain the highest number of observations are the ones that remain.
-  max_size=0.6, # in meters
-  num_voxels_per_dim=50 # number of cells of the grid
+  max_nodes=10,  # the maximum number of nodes that will remain in the graph. The cells that contain the highest number of observations are the ones that remain.
+  max_size=0.6,  # in meters
+  num_voxels_per_dim=50  # number of cells of the grid
 )
 
 def dataset ():
-  locations = np.random.rand(10, 3) * 0.3 # must be not larger than max_size / 2
-  features = {
+  # locations — массив 3D-координат точек, которые "посетил" сенсор на поверхности объекта (то, что мы сами генерировали случайно, а в реальном пайплайне это выход DepthTo3DLocations + сенсорного модуля — позиция патча в системе отсчёта объекта). По ним строится воксельная сетка (якорение на locations[0], масштаб/офсет).  # noqa: E501, RUF003
+  locations = np.random.rand(10, 3) * 0.3  # must be not larger than max_size / 2
+  # features — словарь непространственных признаков, привязанных к этим же точкам (здесь — произвольный ключ "fdots" со случайными числами; в реальном пайплайне это то, что сенсорный модуль извлёк в этой точке — например, кривизна, цвет и т.п.). Каждой строке locations[i] соответствует запись features[key][i]  # noqa: E501, RUF003
+  features = {  # на самом деле значения не используются, этот код нужен для создания формально необходимого параметра features  # noqa: E501
     "fdots": np.random.rand(10, 3) * 0.3
   }
   model.build_model(
     locations,
     features
   )
-  # print(f"Hello, task 1 here.\nLocations: {locations}\nFeatures: {features['fdots']}")
-  # print(f"{locations.shape}, {features['fdots'].shape}")
-  # print("model.pos (coordinates): ")
-  # print(model.pos)
-  # print("\nmodel.x (features): ")
-  # print(model.x)
-  # print("\nmodel.feature_mapping: ")
-  # print(model.feature_mapping)
   print("Drawing graph...")
-  
+
   fig = plt.figure()                          # canvas
   ax = fig.add_subplot(projection="3d")       # 3D-axes on the canvas
-  ax.scatter(locations[:, 0], locations[:, 1], locations[:, 2])   # dots
+  ax.scatter(locations[:, 0], locations[:, 1], locations[:, 2])  # dots
   # ----------------------------------------
   # Borders of 50 cells on each axis considering location of the model's grid
   n = model._num_voxels_per_dim
   scale = model._location_scale_factor
-  offset = model._location_offset # attached to the first observed dot on the graph
+  offset = model._location_offset  # attached to the first observed dot on the graph
 
   edges = [
       (np.arange(n + 1) - 0.5 - offset[i]) / scale
