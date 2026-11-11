@@ -20,6 +20,7 @@ from tbp.monty.frameworks.models.evidence_matching.learning_module import (
     EvidenceGraphLM,
 )
 from tbp.monty.frameworks.models.goal_generation import EvidenceGoalGenerator
+from tbp.monty.geometry import SurfacePoseVectors
 from tests import HYDRA_ROOT
 from tests.unit.resources.unit_test_utils import BaseGraphTest
 
@@ -157,12 +158,12 @@ class EvidenceLMTest(BaseGraphTest):
 
         # Train on second object
         obj_two_target = copy.deepcopy(self.placeholder_target)
-        obj_two_target["object"] = "new_object1"
+        obj_two_target.object_name = "new_object1"
         graph_lm.reset_stm()
         graph_lm.fixme_reset_ground_truth(primary_target=obj_two_target)
         for observation in fake_obs_two:
             graph_lm.exploratory_step(self.ctx, [observation])
-        graph_lm.detected_object = obj_two_target["object"]
+        graph_lm.detected_object = obj_two_target.object_name
         graph_lm.detected_rotation_r = None
         graph_lm.buffer.stats["detected_location_rel_body"] = (
             graph_lm.buffer.current_location()
@@ -687,8 +688,8 @@ class EvidenceLMTest(BaseGraphTest):
     def test_different_pose_features_not_recognized_elm(self):
         """Test that the object is not recognized if pose features don't match."""
         fake_obs_test = copy.deepcopy(self.fake_obs_learn)
-        fake_obs_test[0].morphological_features["pose_vectors"] = np.array(
-            [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        fake_obs_test[0].morphological_features["pose_vectors"] = SurfacePoseVectors(
+            np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         )
 
         graph_lm = self.get_elm_with_fake_object(self.fake_obs_learn)

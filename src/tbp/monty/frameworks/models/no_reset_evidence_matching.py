@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Any, Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
 from tbp.monty.cmp import Message, location_mean
 from tbp.monty.context import RuntimeContext
+from tbp.monty.experiment.primary_target import PrimaryTarget
 from tbp.monty.frameworks.environments.environment import SemanticID
 from tbp.monty.frameworks.models.evidence_matching.burst_sampling import (
     BurstSamplingHypothesesUpdater,
@@ -103,7 +104,7 @@ class MontyForNoResetEvidenceGraphMatching(MontyForEvidenceGraphMatching):
 
     def fixme_set_ground_truth(
         self,
-        primary_target: dict[str, Any] | None = None,
+        primary_target: PrimaryTarget | None = None,
         semantic_id_to_label: dict[SemanticID, str] | None = None,
     ) -> None:
         if not self._super_set_ground_truth_called:
@@ -114,20 +115,35 @@ class MontyForNoResetEvidenceGraphMatching(MontyForEvidenceGraphMatching):
         self.primary_target = primary_target
         self.semantic_id_to_label = semantic_id_to_label
         for lm in self.learning_modules:
-            lm.primary_target = primary_target["object"]
-            lm.primary_target_rotation_quat = primary_target["quat_rotation"]
+            lm.primary_target = primary_target.object_name
+            lm.primary_target_rotation_quat = primary_target.quat_rotation
 
     def _reset_terminal_states(self):
         for lm in self.learning_modules:
             lm.set_individual_ts(None)
 
-    def _reset_modules_buffers(self):
-        """Resets buffers for LMs and SMs."""
+    def _reset_modules_buffers(self) -> None:
+        """Resets buffers for LMs and SMs.
+
+        TODO: Reconsider what to do here. There is a distinction between resetting
+              the modules, which may have impact on their processing, vs clearing
+              buffers that will not be returned to. The intent of this method is
+              a performance optimization to clear the buffers, so a generic
+              lm.reset() or sm.reset() will not work as intended, but reaching into
+              assumed methods and clearing them individually won't work in the long
+              term either.
+        """
         for lm in self.learning_modules:
             lm.buffer.reset()
         for sm in self.sensor_modules:
             sm.processed_obs = []
-            sm._snapshot_telemetry.reset()
+            # The below code reproduces previous behavior of resetting
+            # snapshot telemetry, but does so conditionally, so it
+            # does not fail on sensor modules that lack this attribute.
+            if hasattr(sm, "_snapshot_telemetry"):
+                snapshot_telemetry = sm._snapshot_telemetry
+                if hasattr(snapshot_telemetry, "reset"):
+                    snapshot_telemetry.reset()
 
 
 class NoResetEvidenceGraphLM(TheoreticalLimitLMLoggingMixin, EvidenceGraphLM):

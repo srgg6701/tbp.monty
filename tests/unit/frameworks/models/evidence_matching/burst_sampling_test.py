@@ -28,7 +28,7 @@ from tbp.monty.frameworks.models.evidence_matching.hypotheses import (
 from tbp.monty.frameworks.models.evidence_matching.learning_module import (
     InvalidEvidenceThresholdConfig,
 )
-from tbp.monty.geometry import Rotation
+from tbp.monty.geometry import Rotation, SurfacePoseVectors
 
 
 class BurstSamplingHypothesesUpdaterTest(TestCase):
@@ -729,7 +729,7 @@ class BurstSamplingHypothesesUpdaterTest(TestCase):
             features={
                 "patch": {
                     "pose_fully_defined": True,
-                    "pose_vectors": np.eye(3, dtype=np.float64),
+                    "pose_vectors": SurfacePoseVectors(np.eye(3, dtype=np.float64)),
                 },
             },
             graph_id="object1",
@@ -793,7 +793,7 @@ class BurstSamplingHypothesesUpdaterTest(TestCase):
             tracker=EvidenceSlopeTracker(),
         )
 
-        for channel, num_nodes in zip(channels, channel_nodes):
+        for channel, num_nodes in zip(channels, channel_nodes, strict=True):
             capped = min(sampling_multiplier, num_hyps_per_node)
             expected = round(num_nodes * capped)
             expected -= expected % num_hyps_per_node

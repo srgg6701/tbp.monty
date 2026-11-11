@@ -10,7 +10,8 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Collection, Dict, Protocol, Sequence, TypedDict
+from collections.abc import Collection, Sequence
+from typing import Any, Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -19,7 +20,8 @@ from tbp.monty.cmp import AttentionRegion, Goal, Message
 from tbp.monty.context import RuntimeContext
 from tbp.monty.experiment.learning_module import ExperimentLearningModule
 from tbp.monty.experiment.monty import ExperimentMonty
-from tbp.monty.experiment.sensor_module import ExperimentSensorModule
+from tbp.monty.experiment.primary_target import PrimaryTarget
+from tbp.monty.experiment.sensor_module import ResettableSensorModule
 from tbp.monty.frameworks.actions.actions import Action
 from tbp.monty.frameworks.agents import AgentID
 from tbp.monty.frameworks.environments.environment import SemanticID
@@ -29,7 +31,9 @@ from tbp.monty.frameworks.models.motor_system_state import (
     ProprioceptiveState,
 )
 from tbp.monty.frameworks.sensors import SensorID
+from tbp.monty.geometry import Rotation
 from tbp.monty.memento import Memento, Snapshotable
+from tbp.monty.observations import SensorObservation
 
 __all__ = [
     "AgentObservations",
@@ -42,30 +46,16 @@ __all__ = [
     "RuntimeContext",
     "RuntimeLearningModule",
     "SensorModule",
-    "SensorObservation",
 ]
 
 
-class SensorObservation(TypedDict, total=False):
-    """Observations from a sensor."""
-
-    rgba: npt.NDArray[np.uint8]
-    depth: npt.NDArray[np.float64]  # TODO: Verify specific type
-    semantic: npt.NDArray[np.int_]  # TODO: Verify specific type
-    semantic_3d: npt.NDArray[np.int_]  # TODO: Verify specific type
-    sensor_frame_data: npt.NDArray[np.int_]  # TODO: Verify specific type
-    cam_to_world: npt.NDArray[np.float64]  # TODO: Verify specific type
-    pixel_loc: npt.NDArray[np.float64]  # TODO: Verify specific type
-    raw: npt.NDArray[np.uint8]
-
-
-class AgentObservations(Dict[SensorID, SensorObservation]):
+class AgentObservations(dict[SensorID, SensorObservation]):
     """Observations from an agent."""
 
     pass
 
 
-class Observations(Dict[AgentID, AgentObservations]):
+class Observations(dict[AgentID, AgentObservations]):
     """Observations from the environment."""
 
     pass
@@ -288,7 +278,7 @@ class Monty(ExperimentMonty, RuntimeMonty, Snapshotable, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fixme_set_ground_truth(
         self,
-        primary_target: dict[str, Any] | None = None,
+        primary_target: PrimaryTarget | None = None,
         semantic_id_to_label: dict[SemanticID, str] | None = None,
     ) -> None:
         pass
@@ -357,6 +347,10 @@ class RuntimeLearningModule(Protocol):
         """
         ...
 
+    def propose_region(self) -> AttentionRegion:
+        """Return the attention region to attend to."""
+        ...
+
     def get_output(self) -> Message | None:
         """Return learning module output (same format as input)."""
         ...
@@ -381,7 +375,9 @@ class LearningModule(
         pass
 
     @abc.abstractmethod
-    def fixme_reset_ground_truth(self, primary_target=None) -> None:
+    def fixme_reset_ground_truth(
+        self, primary_target: PrimaryTarget | None = None
+    ) -> None:
         pass
 
     @abc.abstractmethod
@@ -422,6 +418,10 @@ class LearningModule(
         pass
 
     @abc.abstractmethod
+    def propose_region(self) -> AttentionRegion:
+        pass
+
+    @abc.abstractmethod
     def get_output(self) -> Message | None:
         pass
 
@@ -449,8 +449,28 @@ class LMMemory(Snapshotable, metaclass=abc.ABCMeta):
     # Methods that define the algorithm
     ###
     @abc.abstractmethod
-    def update_memory(self, observations):
-        """Update models stored in memory given new observation & classification."""
+    def update_memory(
+        self,
+        locations: npt.NDArray[np.float64],
+        features: dict[str, dict[str, npt.NDArray[np.float64]]],
+        graph_id: str,
+        object_location_rel_body: npt.NDArray[np.float64],
+        location_rel_model: npt.NDArray[np.float64],
+        object_rotation: Rotation | None,
+    ) -> None:
+        """Update models stored in memory given an episode's observations.
+
+        Args:
+            locations: Observed locations, one row per step, in body coordinates.
+            features: Nested dict, input channel -> feature name -> array with one
+                row per step.
+            graph_id: ID of the recognized object.
+            object_location_rel_body: Detected location of the object relative to
+                the body.
+            location_rel_model: Location of the last observation relative to the
+                object model.
+            object_rotation: Rotation of the object relative to the world.
+        """
         pass
 
     ###
@@ -507,45 +527,7 @@ class GoalGenerator(metaclass=abc.ABCMeta):
         pass
 
 
-class RuntimeSensorModule(Protocol):
-    """Monty runtime interface to a Sensor Module."""
-
-    def update_state(self, agent: AgentState) -> None:
-        """Update the proprioceptive state for this Sensor Module.
-
-        Args:
-            agent: The proprioceptive state of this sensor module's Agent.
-        """
-        ...
-
-    def step(
-        self,
-        ctx: RuntimeContext,
-        observation: SensorObservation,
-        motor_only_step: bool = False,
-    ) -> Message | None:
-        """Execute a time-step for the Sensor Module.
-
-        Args:
-            ctx: The runtime context.
-            observation: Sensor observation.
-            motor_only_step: Whether the current step is a motor-only step.
-
-        Returns:
-            An optional percept with features and morphological features.
-        """
-        ...
-
-    def propose_goals(self) -> Sequence[Goal]:
-        """Return the goals proposed by this Sensor Module.
-
-        Returns:
-            A sequence of proposed Goals.
-        """
-        ...
-
-
-class SensorModule(RuntimeSensorModule, ExperimentSensorModule, metaclass=abc.ABCMeta):
+class SensorModule(ResettableSensorModule, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def state_dict(self) -> Memento:
         pass
@@ -563,7 +545,7 @@ class SensorModule(RuntimeSensorModule, ExperimentSensorModule, metaclass=abc.AB
     ) -> Message | None:
         pass
 
-    def propose_goals(self) -> list[Goal]:
+    def propose_goals(self) -> Collection[Goal]:
         return []
 
     def propose_region(self) -> AttentionRegion:
